@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #8e9eab, #eef2f3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .calculator {
+      width: 320px;
+      background: #2d3436;
+      border-radius: 20px;
+      box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      color: #fff;
+    }
+
+    .display {
+      width: 100%;
+      height: 70px;
+      background: #1e272e;
+      border-radius: 10px;
+      font-size: 2.2rem;
+      text-align: right;
+      padding: 15px;
+      color: #00cec9;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 20px;
+      font-size: 1.4rem;
+      border: none;
+      border-radius: 12px;
+      background: #636e72;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #b2bec3;
+      color: #2d3436;
+    }
+
+    button.operator {
+      background: #00b894;
+    }
+
+    button.equal {
+      background: #0984e3;
+      grid-column: span 2;
+    }
+
+    button.clear {
+      background: #d63031;
+    }
+
+    .mode-toggle {
+      text-align: center;
+      margin-top: 15px;
+      color: #dfe6e9;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 5px;
+    }
+
+    @media screen and (max-width: 400px) {
+      .calculator {
+        width: 90%;
+      }
+
+      .display {
+        font-size: 1.8rem;
+        padding: 10px;
+      }
+
+      button {
+        font-size: 1.2rem;
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calculator">
+    <div class="display" id="display">0</div>
+
+    <div class="buttons">
+      <button class="clear" onclick="clearDisplay()">AC</button>
+      <button class="operator" onclick="appendValue('%')">%</button>
+      <button class="operator" onclick="appendValue('/')">÷</button>
+      <button class="operator" onclick="appendValue('*')">×</button>
+
+      <button onclick="appendValue('7')">7</button>
+      <button onclick="appendValue('8')">8</button>
+      <button onclick="appendValue('9')">9</button>
+      <button class="operator" onclick="appendValue('-')">−</button>
+
+      <button onclick="appendValue('4')">4</button>
+      <button onclick="appendValue('5')">5</button>
+      <button onclick="appendValue('6')">6</button>
+      <button class="operator" onclick="appendValue('+')">+</button>
+
+      <button onclick="appendValue('1')">1</button>
+      <button onclick="appendValue('2')">2</button>
+      <button onclick="appendValue('3')">3</button>
+      <button onclick="appendValue('.')">.</button>
+
+      <button onclick="appendValue('0')">0</button>
+      <button class="equal" onclick="calculate()">=</button>
+    </div>
+
+    <div class="mode-toggle">
+      <label>
+        <input type="checkbox" id="modeSwitch" onchange="toggleMode()" />
+        🌙 Dark Mode
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+
+    function appendValue(val) {
+      if (display.innerText === "0" || display.innerText === "Error") {
+        display.innerText = val;
+      } else {
+        display.innerText += val;
+      }
+    }
+
+    function clearDisplay() {
+      display.innerText = "0";
+    }
+
+    function calculate() {
+      try {
+        let result = eval(display.innerText.replace('%', '/100'));
+        display.innerText = result;
+      } catch (error) {
+        display.innerText = "Error";
+      }
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+      const key = e.key;
+      if (/\d/.test(key) || ['+', '-', '*', '/', '.', '%'].includes(key)) {
+        appendValue(key);
+      } else if (key === 'Enter') {
+        e.preventDefault();
+        calculate();
+      } else if (key === 'Backspace') {
+        display.innerText = display.innerText.slice(0, -1) || "0";
+      } else if (key === 'Escape') {
+        clearDisplay();
+      }
+    });
+  </script>
+
+</body>
+</html>
