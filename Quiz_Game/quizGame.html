@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>✅ Quiz App Advanced</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #dff9fb, #c7ecee);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .quiz-container {
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      width: 500px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .question {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+    }
+
+    .option {
+      background-color: #ecf0f1;
+      padding: 10px 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .option:hover {
+      background-color: #dcdde1;
+    }
+
+    .option.correct { background-color: #00b894; color: white; }
+    .option.wrong { background-color: #d63031; color: white; }
+
+    #next-btn, #restart-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #0984e3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    #next-btn:hover, #restart-btn:hover {
+      background-color: #74b9ff;
+    }
+
+    .result, .timer, .high-score {
+      font-size: 1.1rem;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .timer {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      color: #d63031;
+      font-weight: bold;
+    }
+
+    #restart-btn {
+      background-color: #e17055;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="quiz-container">
+    <div class="timer" id="timer">⏳ 15</div>
+
+    <div id="question" class="question">Loading...</div>
+    <div id="options"></div>
+
+    <button id="next-btn">Next</button>
+    <button id="restart-btn" style="display:none;">Restart Quiz</button>
+
+    <div class="result" id="result"></div>
+    <div class="high-score" id="highScoreBox"></div>
+  </div>
+
+  <script>
+    const quizData = [
+      {
+        question: "What does HTML stand for?",
+        options: ["Hyper Text Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Mark Language"],
+        answer: "Hyper Text Markup Language"
+      },
+      {
+        question: "Which language is used for styling web pages?",
+        options: ["HTML", "JQuery", "CSS", "XML"],
+        answer: "CSS"
+      },
+      {
+        question: "What does JS stand for?",
+        options: ["JavaScript", "JavaSuper", "JustStyle", "JoinScript"],
+        answer: "JavaScript"
+      },
+      {
+        question: "Which tag is used to insert an image in HTML?",
+        options: ["<pic>", "<img>", "<src>", "<image>"],
+        answer: "<img>"
+      },
+      {
+        question: "Which language runs in a web browser?",
+        options: ["Java", "C", "Python", "JavaScript"],
+        answer: "JavaScript"
+      },
+      {
+        question: "Which of the following is a JavaScript framework?",
+        options: ["React", "Laravel", "Django", "Spring"],
+        answer: "React"
+      },
+      {
+        question: "Which tag is used to create a hyperlink in HTML?",
+        options: ["<a>", "<link>", "<href>", "<button>"],
+        answer: "<a>"
+      },
+      {
+        question: "How do you write a comment in CSS?",
+        options: ["<!-- comment -->", "// comment", "/* comment */", "' comment"],
+        answer: "/* comment */"
+      },
+      {
+        question: "Which tool is used for version control?",
+        options: ["VS Code", "Git", "Figma", "Photoshop"],
+        answer: "Git"
+      },
+      {
+        question: "Which HTML tag is used for a line break?",
+        options: ["<br>", "<break>", "<lb>", "<hr>"],
+        answer: "<br>"
+      }
+    ];
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const nextBtn = document.getElementById("next-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const resultEl = document.getElementById("result");
+    const timerEl = document.getElementById("timer");
+    const highScoreBox = document.getElementById("highScoreBox");
+
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+    let timer;
+    let timeLeft = 15;
+    const userAnswers = [];
+
+    function loadQuestion() {
+      const current = quizData[currentQuestion];
+      questionEl.innerText = `${currentQuestion + 1}. ${current.question}`;
+      optionsEl.innerHTML = "";
+      resultEl.innerText = "";
+      answered = false;
+      timeLeft = 15;
+      timerEl.innerText = `⏳ ${timeLeft}`;
+
+      current.options.forEach(option => {
+        const btn = document.createElement("div");
+        btn.classList.add("option");
+        btn.innerText = option;
+        btn.onclick = () => selectAnswer(btn, current.answer);
+        optionsEl.appendChild(btn);
+      });
+
+      nextBtn.style.display = "none";
+      clearInterval(timer);
+      timer = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      timerEl.innerText = `⏳ ${timeLeft}`;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        autoFail();
+      }
+    }
+
+    function selectAnswer(selectedBtn, correctAnswer) {
+      if (answered) return;
+      answered = true;
+      clearInterval(timer);
+
+      const allOptions = document.querySelectorAll(".option");
+      allOptions.forEach(option => {
+        option.classList.add(option.innerText === correctAnswer ? "correct" : "wrong");
+        option.style.pointerEvents = "none";
+      });
+
+      const selectedText = selectedBtn.innerText;
+      userAnswers.push({
+        question: quizData[currentQuestion].question,
+        correct: correctAnswer,
+        selected: selectedText
+      });
+
+      if (selectedText === correctAnswer) {
+        score++;
+      }
+
+      nextBtn.style.display = "inline-block";
+    }
+
+    function autoFail() {
+      answered = true;
+      const current = quizData[currentQuestion];
+      const allOptions = document.querySelectorAll(".option");
+      allOptions.forEach(option => {
+        option.classList.add(option.innerText === current.answer ? "correct" : "wrong");
+        option.style.pointerEvents = "none";
+      });
+
+      userAnswers.push({
+        question: current.question,
+        correct: current.answer,
+        selected: "⏰ Time Up"
+      });
+
+      nextBtn.style.display = "inline-block";
+    }
+
+    nextBtn.addEventListener("click", () => {
+      currentQuestion++;
+      if (currentQuestion < quizData.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    });
+
+    function showResult() {
+      questionEl.style.display = "none";
+      optionsEl.style.display = "none";
+      nextBtn.style.display = "none";
+      timerEl.style.display = "none";
+
+      const percent = Math.round((score / quizData.length) * 100);
+      const emoji = percent >= 75 ? "🎉" : percent >= 50 ? "🙂" : "😞";
+
+      resultEl.innerHTML = `
+        ✅ You scored ${score} out of ${quizData.length} (${percent}%) ${emoji}
+        <br><br><strong>📝 Review:</strong><br>
+      `;
+
+      showReview();
+      saveHighScore(percent);
+      restartBtn.style.display = "inline-block";
+    }
+
+    function showReview() {
+      userAnswers.forEach((entry, index) => {
+        const div = document.createElement("div");
+        div.style.marginTop = "10px";
+        div.innerHTML = `
+          <strong>Q${index + 1}:</strong> ${entry.question}<br>
+          <span style="color:${entry.selected === entry.correct ? 'green' : 'red'}">
+            Your Answer: ${entry.selected}
+          </span><br>
+          <span style="color:blue">Correct Answer: ${entry.correct}</span>
+        `;
+        resultEl.appendChild(div);
+      });
+    }
+
+    function saveHighScore(percent) {
+      const prevHigh = localStorage.getItem("quizHighScore") || 0;
+      if (percent > prevHigh) {
+        localStorage.setItem("quizHighScore", percent);
+      }
+      highScoreBox.innerText = `🏆 High Score: ${Math.max(percent, prevHigh)}%`;
+    }
+
+    restartBtn.addEventListener("click", () => {
+      currentQuestion = 0;
+      score = 0;
+      answered = false;
+      userAnswers.length = 0;
+      questionEl.style.display = "block";
+      optionsEl.style.display = "block";
+      timerEl.style.display = "block";
+      restartBtn.style.display = "none";
+      resultEl.innerHTML = "";
+      loadQuestion();
+    });
+
+    loadQuestion();
+    saveHighScore(0);
+  </script>
+
+</body>
+</html>

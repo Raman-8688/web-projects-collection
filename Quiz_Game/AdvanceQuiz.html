@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Quiz App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f1f2f6;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      width: 100%;
+    }
+    h2 {
+      text-align: center;
+    }
+    select, button {
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+      width: 100%;
+    }
+    .question {
+      font-weight: bold;
+      margin: 20px 0 10px;
+    }
+    .option {
+      background-color: #dff9fb;
+      padding: 10px;
+      border-radius: 6px;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    .option:hover {
+      background-color: #c7ecee;
+    }
+    .correct {
+      background-color: #55efc4 !important;
+    }
+    .wrong {
+      background-color: #fab1a0 !important;
+    }
+    .result, .timer, .highscore {
+      margin-top: 15px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .timer {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🧠 Live Quiz App</h2>
+  <select id="topic">
+    <option value="html">HTML</option>
+    <option value="css">CSS</option>
+    <option value="javascript">JavaScript</option>
+    <option value="java">Java</option>
+  </select>
+  <button onclick="startQuiz()">Start Quiz</button>
+  <div class="timer" id="timer"></div>
+  <div id="quiz"></div>
+  <div class="result" id="result"></div>
+  <div class="highscore" id="highscore"></div>
+  <button onclick="restartQuiz()" id="restartBtn" style="display: none;">Restart Quiz</button>
+</div>
+
+<script>
+  let questions = [];
+  let currentQuestion = 0;
+  let score = 0;
+  let timerInterval;
+  let timeLeft = 15;
+  const quizEl = document.getElementById("quiz");
+  const resultEl = document.getElementById("result");
+  const timerEl = document.getElementById("timer");
+  const highscoreEl = document.getElementById("highscore");
+  const restartBtn = document.getElementById("restartBtn");
+
+  const categoryMap = {
+    html: 18,        // General Knowledge (closest to HTML/CSS)
+    css: 18,
+    javascript: 18,
+    java: 18
+  };
+
+  const highScoreStored = localStorage.getItem("quizHighScore") || 0;
+  highscoreEl.innerText = `🏆 High Score: ${highScoreStored}`;
+
+  function startQuiz() {
+    const topic = document.getElementById("topic").value;
+    const apiUrl = `https://opentdb.com/api.php?amount=10&category=${categoryMap[topic]}&type=multiple&difficulty=easy`;
+
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        questions = data.results.slice(0, 5); // ✅ No filtering
+        if (questions.length === 0) {
+          resultEl.innerHTML = "❌ No questions found. Try again.";
+          return;
+        }
+
+        currentQuestion = 0;
+        score = 0;
+        resultEl.innerHTML = "";
+        restartBtn.style.display = "none";
+        showQuestion();
+      });
+  }
+
+  function showQuestion() {
+    clearInterval(timerInterval);
+    if (currentQuestion >= questions.length) {
+      quizEl.innerHTML = `<h3>Quiz Finished</h3><p>Your score: ${score}/${questions.length}</p>`;
+      updateHighScore();
+      restartBtn.style.display = "block";
+      timerEl.innerText = "";
+      return;
+    }
+
+    const q = questions[currentQuestion];
+    const options = [...q.incorrect_answers];
+    options.splice(Math.floor(Math.random() * 4), 0, q.correct_answer);
+
+    quizEl.innerHTML = `
+      <div class="question">${currentQuestion + 1}. ${decode(q.question)}</div>
+      ${options.map(opt =>
+        `<div class="option" onclick="selectAnswer(this, '${decode(opt)}')">${decode(opt)}</div>`
+      ).join("")}
+    `;
+
+    timeLeft = 15;
+    timerEl.innerText = `⏳ Time Left: ${timeLeft}s`;
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timerEl.innerText = `⏳ Time Left: ${timeLeft}s`;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        showCorrectAnswer();
+      }
+    }, 1000);
+  }
+
+  function decode(str) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  }
+
+  function selectAnswer(el, selected) {
+    clearInterval(timerInterval);
+    const correct = decode(questions[currentQuestion].correct_answer);
+    const options = document.querySelectorAll(".option");
+
+    options.forEach(opt => {
+      opt.style.pointerEvents = "none";
+      if (opt.innerText === correct) opt.classList.add("correct");
+      else if (opt.innerText === selected) opt.classList.add("wrong");
+    });
+
+    if (selected === correct) {
+      score++;
+      resultEl.innerText = "✅ Correct!";
+      resultEl.style.color = "green";
+    } else {
+      resultEl.innerText = `❌ Wrong! Correct: ${correct}`;
+      resultEl.style.color = "red";
+    }
+
+    setTimeout(() => {
+      currentQuestion++;
+      showQuestion();
+    }, 2000);
+  }
+
+  function showCorrectAnswer() {
+    const correct = decode(questions[currentQuestion].correct_answer);
+    document.querySelectorAll(".option").forEach(opt => {
+      opt.style.pointerEvents = "none";
+      if (opt.innerText === correct) opt.classList.add("correct");
+    });
+    resultEl.innerText = `⏰ Time's up! Correct: ${correct}`;
+    resultEl.style.color = "orange";
+
+    setTimeout(() => {
+      currentQuestion++;
+      showQuestion();
+    }, 2000);
+  }
+
+  function updateHighScore() {
+    const currentHigh = localStorage.getItem("quizHighScore") || 0;
+    if (score > currentHigh) {
+      localStorage.setItem("quizHighScore", score);
+      highscoreEl.innerText = `🏆 High Score: ${score}`;
+    } else {
+      highscoreEl.innerText = `🏆 High Score: ${currentHigh}`;
+    }
+  }
+
+  function restartQuiz() {
+    resultEl.innerText = "";
+    quizEl.innerHTML = "";
+    highscoreEl.innerText = "";
+    timerEl.innerText = "";
+    restartBtn.style.display = "none";
+    startQuiz();
+  }
+</script>
+
+</body>
+</html>
